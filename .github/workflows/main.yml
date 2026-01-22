@@ -1,17 +1,33 @@
-name: wasif portfolio
+name: Build and Deploy to S3
 
 on:
   push:
     branches:
-      - main
+      - master  # You switched to master
 
 jobs:
-  build-and-deploy:  # Fixed typo and indentation (2 spaces)
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
 
+      # Step 1: Install Ruby (Required for Jekyll)
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1' # Compatible with al-folio
+          bundler-cache: true # This runs 'bundle install' automatically
+
+      # Step 2: Install ImageMagick (Required by al-folio for images)
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      # Step 3: Build the site
+      - name: Build with Jekyll
+        run: bundle exec jekyll build
+
+      # Step 4: Login to AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -19,6 +35,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      # Step 5: Upload ONLY the built site (the _site folder)
       - name: Deploy static site to S3 bucket
-        # Make sure the bucket name matches exactly what you have in AWS
-        run: aws s3 sync . s3://porfolio1 --delete
+        run: aws s3 sync ./_site s3://porfolio1 --delete
